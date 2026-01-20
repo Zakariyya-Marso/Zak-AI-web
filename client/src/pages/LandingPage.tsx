@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { MessageSquare, ArrowRight, Zap, Skull } from "lucide-react";
 import { Redirect } from "wouter";
+import logoImg from "@/assets/logo.png";
 
 export default function LandingPage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -24,9 +25,7 @@ export default function LandingPage() {
           transition={{ duration: 0.6 }}
         >
           <div className="flex items-center gap-2 mb-6">
-            <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/20">
-              <span className="font-bold text-primary text-xl">Z</span>
-            </div>
+            <img src={logoImg} alt="Zak AI Logo" className="h-10 w-10 rounded-xl" />
             <span className="font-bold text-xl tracking-tight text-white/80">Zak AI</span>
           </div>
 

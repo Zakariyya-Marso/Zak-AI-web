@@ -15,6 +15,8 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { AnimatePresence, motion } from "framer-motion";
 
+import logoImg from "@/assets/logo.png";
+
 interface SidebarProps {
   currentId: number | null;
   onSelect: (id: number) => void;
@@ -48,9 +50,7 @@ export function Sidebar({ currentId, onSelect, isOpen, onClose }: SidebarProps) 
       {/* Header */}
       <div className="p-4 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/20">
-            <span className="font-bold text-primary">Z</span>
-          </div>
+          <img src={logoImg} alt="Zak AI Logo" className="h-8 w-8 rounded-full" />
           <span className="font-bold text-lg tracking-tight">Zak AI</span>
         </div>
         <Button 
