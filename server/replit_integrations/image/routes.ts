@@ -1,7 +1,27 @@
 import type { Express, Request, Response } from "express";
-import { Modality } from "@google/genai";
+import { Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { ai } from "./client";
 import { isAuthenticated } from "../auth";
+
+// Safety settings to disable filters
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+];
 
 export function registerImageRoutes(app: Express): void {
   app.post("/api/generate-image", isAuthenticated, async (req: Request, res: Response) => {
@@ -18,6 +38,7 @@ export function registerImageRoutes(app: Express): void {
         config: {
           responseModalities: [Modality.TEXT, Modality.IMAGE],
         },
+        safetySettings,
       });
 
       const candidate = response.candidates?.[0];

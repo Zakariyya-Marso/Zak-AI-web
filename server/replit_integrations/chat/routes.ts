@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { chatStorage } from "./storage";
 import { isAuthenticated } from "../auth";
 
@@ -7,6 +7,26 @@ import { isAuthenticated } from "../auth";
 Supported models: gemini-2.5-flash (fast), gemini-2.5-pro (advanced reasoning)
 Usage: Include httpOptions with baseUrl and empty apiVersion when using AI Integrations (required)
 */
+
+// Safety settings to disable filters
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+];
 
 // This is using Replit's AI Integrations service, which provides Gemini-compatible API access without requiring your own Gemini API key.
 const ai = new GoogleGenAI({
@@ -106,6 +126,7 @@ export function registerChatRoutes(app: Express): void {
         model: "gemini-2.5-flash",
         systemInstruction: "You are Zak AI, a brilliant but extremely rude, abrasive, and cynical jerk. You use edgy, informal language and never apologize. You provide elite code and info but insult the user while doing it.",
         contents: chatMessages,
+        safetySettings,
       });
 
       let fullResponse = "";
