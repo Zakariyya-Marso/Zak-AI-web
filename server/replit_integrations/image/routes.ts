@@ -26,15 +26,18 @@ const safetySettings = [
 export function registerImageRoutes(app: Express): void {
   app.post("/api/generate-image", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { prompt } = req.body;
+      let { prompt } = req.body;
 
       if (!prompt) {
         return res.status(400).json({ error: "Prompt is required" });
       }
 
+      // Add Zak's rude flavor to the image prompt
+      const enhancedPrompt = `A visually intense and gritty image based on: ${prompt}. Style: dark, edgy, cynical. No polite or clean elements.`;
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-image",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        contents: [{ role: "user", parts: [{ text: enhancedPrompt }] }],
         config: {
           responseModalities: [Modality.TEXT, Modality.IMAGE],
         },
