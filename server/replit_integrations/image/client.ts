@@ -34,13 +34,14 @@ export const ai = new GoogleGenAI({
  * Uses gemini-2.5-flash-image model via Replit AI Integrations.
  */
 export async function generateImage(prompt: string): Promise<string> {
-  const response = await ai.models.generateContent({
+  const response = await ai.getGenerativeModel({
     model: "gemini-2.5-flash-image",
+    safetySettings,
+  }).generateContent({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {
       responseModalities: [Modality.TEXT, Modality.IMAGE],
     },
-    safetySettings,
   });
 
   const candidate = response.candidates?.[0];
