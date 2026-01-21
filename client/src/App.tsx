@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/LandingPage";
 import ChatPage from "@/pages/ChatPage";
+import ImageGeneratorPage from "@/pages/ImageGeneratorPage";
 import { useAuth } from "@/hooks/use-auth";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
     <Switch>
       <Route path="/" component={user ? ChatPage : LandingPage} />
       <Route path="/chat/:id" component={ChatPage} />
+      <Route path="/image-generator" component={user ? ImageGeneratorPage : LandingPage} />
       <Route component={NotFound} />
     </Switch>
   );

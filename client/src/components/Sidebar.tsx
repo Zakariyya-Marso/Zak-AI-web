@@ -8,11 +8,13 @@ import {
   Trash2, 
   Menu, 
   X,
-  LogOut
+  LogOut,
+  Image as ImageIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocation, Link } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 
 import logoImg from "@/assets/logo.png";
@@ -29,8 +31,13 @@ export function Sidebar({ currentId, onSelect, isOpen, onClose }: SidebarProps) 
   const { mutate: createConversation, isPending: isCreating } = useCreateConversation();
   const { mutate: deleteConversation } = useDeleteConversation();
   const { user, logout } = useAuth();
+  const [location, setLocation] = useLocation();
 
   const handleCreate = () => {
+    // Navigate to home/chat if we're on image generator
+    if (location === "/image-generator") {
+      setLocation("/");
+    }
     createConversation("New Roast", {
       onSuccess: (newConv) => {
         onSelect(newConv.id);
@@ -49,10 +56,12 @@ export function Sidebar({ currentId, onSelect, isOpen, onClose }: SidebarProps) 
     <div className="flex flex-col h-full bg-card/95 backdrop-blur-xl border-r border-white/5">
       {/* Header */}
       <div className="p-4 border-b border-white/5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <img src={logoImg} alt="Zak AI Logo" className="h-8 w-8 rounded-full" />
-          <span className="font-bold text-lg tracking-tight">Zak AI</span>
-        </div>
+        <Link href="/">
+          <div className="flex items-center gap-2 cursor-pointer">
+            <img src={logoImg} alt="Zak AI Logo" className="h-8 w-8 rounded-full" />
+            <span className="font-bold text-lg tracking-tight">Zak AI</span>
+          </div>
+        </Link>
         <Button 
           variant="ghost" 
           size="icon" 
@@ -63,8 +72,8 @@ export function Sidebar({ currentId, onSelect, isOpen, onClose }: SidebarProps) 
         </Button>
       </div>
 
-      {/* New Chat Button */}
-      <div className="p-4">
+      {/* Primary Actions */}
+      <div className="p-4 space-y-2">
         <Button 
           onClick={handleCreate} 
           disabled={isCreating}
@@ -73,11 +82,31 @@ export function Sidebar({ currentId, onSelect, isOpen, onClose }: SidebarProps) 
           <Plus className="h-4 w-4" />
           {isCreating ? "Starting..." : "New Roast"}
         </Button>
+
+        <Link href="/image-generator">
+          <Button 
+            variant="ghost"
+            onClick={() => {
+              onSelect(0);
+              if (window.innerWidth < 768) onClose();
+            }}
+            className={cn(
+              "w-full justify-start gap-2 border border-transparent hover:bg-white/5",
+              location === "/image-generator" && "bg-primary/10 text-primary border-primary/20"
+            )}
+          >
+            <ImageIcon className="h-4 w-4" />
+            Image Studio
+          </Button>
+        </Link>
       </div>
 
       {/* List */}
       <ScrollArea className="flex-1 px-2">
         <div className="space-y-1 p-2">
+          <div className="px-2 mb-2">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Recent Roasts</span>
+          </div>
           {isLoading ? (
             <div className="text-sm text-muted-foreground text-center py-4">Loading history...</div>
           ) : conversations?.length === 0 ? (
