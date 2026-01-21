@@ -35,14 +35,13 @@ export function registerImageRoutes(app: Express): void {
       // Add Zak's rude flavor to the image prompt
       const enhancedPrompt = `A visually intense and gritty image based on: ${prompt}. Style: dark, edgy, cynical. No polite or clean elements.`;
 
-      const response = await ai.getGenerativeModel({
+      const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-image",
-        safetySettings,
-      }).generateContent({
         contents: [{ role: "user", parts: [{ text: enhancedPrompt }] }],
         config: {
           responseModalities: [Modality.TEXT, Modality.IMAGE],
         },
+        safetySettings,
       });
 
       const candidate = response.candidates?.[0];
