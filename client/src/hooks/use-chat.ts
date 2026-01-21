@@ -140,6 +140,9 @@ export function useChatStream(conversationId: number | null) {
               if (data.content) {
                 setStreamedContent(prev => prev + data.content);
               }
+              if (data.imageUrl) {
+                setStreamedContent(prev => prev + `\n\n![Generated Image](${data.imageUrl})`);
+              }
               if (data.done) {
                 // Done
               }

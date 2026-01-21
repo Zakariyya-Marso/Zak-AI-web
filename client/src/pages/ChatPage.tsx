@@ -18,6 +18,8 @@ export default function ChatPage() {
   // Data hooks
   const { data: conversation, isLoading: convLoading } = useConversation(currentConvId);
   const { sendMessage, isStreaming, streamedContent } = useChatStream(currentConvId);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   
   // Auto-scroll logic
   const scrollRef = useRef<HTMLDivElement>(null);

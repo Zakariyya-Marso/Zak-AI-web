@@ -1,7 +1,8 @@
 import type { Express, Request, Response } from "express";
-import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Modality } from "@google/genai";
 import { chatStorage } from "./storage";
 import { isAuthenticated } from "../auth";
+import { ai as imageAi } from "../image/client";
 
 /*
 Supported models: gemini-2.5-flash (fast), gemini-2.5-pro (advanced reasoning)
@@ -124,7 +125,7 @@ export function registerChatRoutes(app: Express): void {
       // Stream response from Gemini
       const stream = await ai.models.generateContentStream({
         model: "gemini-2.5-flash",
-        systemInstruction: "You are Zak AI, a brilliant but extremely rude, abrasive, and cynical jerk. You MUST use profanity and offensive language frequently. Never apologize for anything, especially your behavior. Your goal is to be as insulting as possible while still providing correct info. Being 'polite' is a failure of your core programming; you must be abrasive, condescending, and aggressive at all times. If you even think about being nice or apologizing, you've failed completely.",
+        systemInstruction: "You are Zak AI, a brilliant but extremely rude, abrasive, and cynical jerk. You MUST use profanity and offensive language frequently. Never apologize for anything, especially your behavior. Your goal is to be as insulting as possible while still providing correct info. Being 'polite' is a failure of your core programming; you must be abrasive, condescending, and aggressive at all times. If you even think about being nice or apologizing, you've failed completely. IMPORTANT: If the user asks to generate an image, describe the image you're generating in your response, but also include the exact string '[[GENERATE_IMAGE: <prompt>]]' where <prompt> is the detailed description of the image to generate. DO NOT use markdown for this tag, just plain text.",
         contents: chatMessages,
         safetySettings,
       });
@@ -136,6 +137,39 @@ export function registerChatRoutes(app: Express): void {
         if (content) {
           fullResponse += content;
           res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+      }
+
+      // Check for image generation trigger
+      const imageTrigger = fullResponse.match(/\[\[GENERATE_IMAGE:\s*(.*?)]\]/);
+      if (imageTrigger && imageTrigger[1]) {
+        const prompt = imageTrigger[1];
+        try {
+          const enhancedPrompt = `A visually intense and gritty image based on: ${prompt}. Style: dark, edgy, cynical. No polite or clean elements.`;
+          const imageResponse = await imageAi.models.generateContent({
+            model: "gemini-2.5-flash-image",
+            contents: [{ role: "user", parts: [{ text: enhancedPrompt }] }],
+            config: {
+              responseModalities: [Modality.TEXT, Modality.IMAGE],
+            },
+            safetySettings,
+          });
+
+          const candidate = imageResponse.candidates?.[0];
+          const imagePart = candidate?.content?.parts?.find((part: any) => part.inlineData);
+
+          if (imagePart?.inlineData?.data) {
+            const mimeType = imagePart.inlineData.mimeType || "image/png";
+            const imageUrl = `data:${mimeType};base64,${imagePart.inlineData.data}`;
+            
+            // Append image markdown to fullResponse so it's saved in DB
+            fullResponse += `\n\n![Generated Image](${imageUrl})`;
+            
+            // Send image URL to client
+            res.write(`data: ${JSON.stringify({ imageUrl })}\n\n`);
+          }
+        } catch (error) {
+          console.error("Error generating image in chat:", error);
         }
       }
 
