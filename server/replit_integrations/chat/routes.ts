@@ -145,12 +145,11 @@ export function registerChatRoutes(app: Express): void {
       if (imageTrigger && imageTrigger[1]) {
         const prompt = imageTrigger[1];
         try {
-          const enhancedPrompt = `A visually intense and gritty image based on: ${prompt}. Style: dark, edgy, cynical. No polite or clean elements.`;
           const imageResponse = await imageAi.models.generateContent({
             model: "gemini-2.5-flash-image",
-            contents: [{ role: "user", parts: [{ text: enhancedPrompt }] }],
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
             config: {
-              responseModalities: [Modality.TEXT, Modality.IMAGE],
+              role: "user",
             },
             safetySettings,
           });
