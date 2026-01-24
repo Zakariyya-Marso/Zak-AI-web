@@ -3,9 +3,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Download, Image as ImageIcon, Sparkles, AlertCircle } from "lucide-react";
+import { Loader2, Download, Image as ImageIcon, Sparkles, AlertCircle, Share2, Twitter, Facebook, Link as LinkIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function ImageGeneratorPage() {
   const { user } = useAuth();
@@ -53,6 +54,33 @@ export default function ImageGeneratorPage() {
     link.href = resultImage;
     link.download = `zak-ai-gen-${Date.now()}.png`;
     link.click();
+  };
+
+  const handleShare = async (platform: 'twitter' | 'facebook' | 'copy') => {
+    if (!resultImage) return;
+
+    const shareUrl = window.location.href; // In a real app, this would be a link to the specific image
+    const shareText = `Check out this edgy masterpiece Zak AI generated for me: "${prompt}"`;
+
+    if (platform === 'twitter') {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+    } else if (platform === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
+    } else if (platform === 'copy') {
+      try {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        toast({
+          title: "Copied",
+          description: "Link and prompt copied to clipboard. Go spam your friends.",
+        });
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "Failed to copy. Even your clipboard hates you.",
+          variant: "destructive"
+        });
+      }
+    }
   };
 
   return (
@@ -125,11 +153,31 @@ export default function ImageGeneratorPage() {
                     alt="Generated Art" 
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <Button variant="secondary" onClick={handleDownload} className="gap-2">
                       <Download className="h-4 w-4" />
                       Download
                     </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="gap-2 bg-background/50 backdrop-blur-sm border-white/10">
+                          <Share2 className="h-4 w-4" />
+                          Share
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10">
+                        <DropdownMenuItem onClick={() => handleShare('twitter')} className="gap-2 cursor-pointer">
+                          <Twitter className="h-4 w-4" /> Twitter
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleShare('facebook')} className="gap-2 cursor-pointer">
+                          <Facebook className="h-4 w-4" /> Facebook
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleShare('copy')} className="gap-2 cursor-pointer">
+                          <LinkIcon className="h-4 w-4" /> Copy Link
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </motion.div>
               ) : (
