@@ -26,15 +26,28 @@ const safetySettings = [
 export function registerImageRoutes(app: Express): void {
   app.post("/api/generate-image", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { prompt } = req.body;
+      const { prompt, sourceImage } = req.body;
 
       if (!prompt) {
         return res.status(400).json({ error: "Prompt is required" });
       }
 
+      const contents: any[] = [{ role: "user", parts: [{ text: prompt }] }];
+
+      if (sourceImage) {
+        const [mimeTypePart, base64Data] = sourceImage.split(";base64,");
+        const mimeType = mimeTypePart.split(":")[1];
+        contents[0].parts.push({
+          inlineData: {
+            mimeType,
+            data: base64Data,
+          },
+        });
+      }
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-image",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        contents,
         config: {
           role: "user",
         },

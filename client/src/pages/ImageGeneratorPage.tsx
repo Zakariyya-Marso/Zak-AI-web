@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Download, Image as ImageIcon, Sparkles, AlertCircle, Share2, Twitter, Facebook, Link as LinkIcon } from "lucide-react";
+import { Loader2, Download, Image as ImageIcon, Sparkles, AlertCircle, Share2, Twitter, Facebook, Link as LinkIcon, Upload, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -14,6 +14,32 @@ export default function ImageGeneratorPage() {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
+  const [sourceImage, setSourceImage] = useState<{ name: string; base64: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Wrong file type",
+        description: "Images only, genius.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSourceImage({
+        name: file.name,
+        base64: reader.result as string
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -25,7 +51,10 @@ export default function ImageGeneratorPage() {
       const res = await fetch("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ 
+          prompt,
+          sourceImage: sourceImage?.base64 
+        }),
       });
       
       if (!res.ok) throw new Error("Failed to generate image");
@@ -59,7 +88,7 @@ export default function ImageGeneratorPage() {
   const handleShare = async (platform: 'twitter' | 'facebook' | 'copy') => {
     if (!resultImage) return;
 
-    const shareUrl = window.location.href; // In a real app, this would be a link to the specific image
+    const shareUrl = window.location.href;
     const shareText = `Check out this edgy masterpiece Zak AI generated for me: "${prompt}"`;
 
     if (platform === 'twitter') {
@@ -93,7 +122,7 @@ export default function ImageGeneratorPage() {
             <h1 className="text-3xl font-bold tracking-tight">AI Image Studio</h1>
           </div>
           <p className="text-muted-foreground">
-            Describe what you want Zak's primitive brain to visualize. Don't expect a masterpiece.
+            Describe what you want Zak's primitive brain to visualize. Upload a base image if you want him to 'fix' it.
           </p>
         </div>
 
@@ -102,15 +131,52 @@ export default function ImageGeneratorPage() {
           <div className="lg:col-span-5 space-y-6">
             <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
               <CardContent className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground/80">Image Prompt</label>
-                  <Input 
-                    placeholder="e.g. A dystopian cyberpunk city with neon lights..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="bg-black/20 border-white/5 focus-visible:ring-primary/50"
-                    onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground/80">Source Image (Optional)</label>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      onChange={handleFileChange}
+                      accept="image/*"
+                    />
+                    {sourceImage ? (
+                      <div className="relative rounded-lg overflow-hidden border border-white/10 aspect-video group">
+                        <img src={sourceImage.base64} alt="Source" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            className="h-8 w-8 rounded-full"
+                            onClick={() => setSourceImage(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        className="w-full border-dashed border-white/10 h-24 flex flex-col gap-2 hover:bg-white/5"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Upload image to modify</span>
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground/80">Modification Instructions</label>
+                    <Input 
+                      placeholder={sourceImage ? "e.g. Change the dress to a red one..." : "e.g. A dystopian cyberpunk city..."}
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      className="bg-black/20 border-white/5 focus-visible:ring-primary/50"
+                      onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+                    />
+                  </div>
                 </div>
                 
                 <Button 
@@ -123,7 +189,7 @@ export default function ImageGeneratorPage() {
                   ) : (
                     <ImageIcon className="h-4 w-4" />
                   )}
-                  {isGenerating ? "Generating..." : "Generate Image"}
+                  {isGenerating ? "Processing..." : sourceImage ? "Modify Image" : "Generate Image"}
                 </Button>
 
                 <div className="pt-4 flex items-start gap-3 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
