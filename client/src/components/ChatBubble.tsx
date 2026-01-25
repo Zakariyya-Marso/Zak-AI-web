@@ -3,9 +3,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bot, User } from "lucide-react";
+import { Bot, User, Share2, Twitter, Facebook, Link as LinkIcon, Download } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatBubbleProps {
   role: "user" | "assistant" | "model"; // model is what gemini returns sometimes
@@ -16,9 +19,46 @@ interface ChatBubbleProps {
 export function ChatBubble({ role, content, isStreaming }: ChatBubbleProps) {
   const isUser = role === "user";
   const [isImageOpen, setIsImageOpen] = useState(false);
+  const { toast } = useToast();
 
   // Simple check for base64 image or image markdown
-  const isImage = content.includes("data:image") || content.match(/!\[.*?\]\(.*?\)/);
+  const imageMatch = content.match(/!\[.*?\]\((data:image\/.*?;base64,.*?)\)/) || content.match(/!\[.*?\]\((.*?)\)/);
+  const isImage = content.includes("data:image") || !!imageMatch;
+  const imageUrl = imageMatch ? imageMatch[1] : null;
+
+  const handleDownload = (url: string) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `zak-ai-${Date.now()}.png`;
+    link.click();
+  };
+
+  const handleShare = async (platform: 'twitter' | 'facebook' | 'copy', url: string | null) => {
+    if (!url) return;
+
+    const shareUrl = window.location.href;
+    const shareText = "Zak AI actually generated something cool. Miracles exist.";
+
+    if (platform === 'twitter') {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+    } else if (platform === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
+    } else if (platform === 'copy') {
+      try {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        toast({
+          title: "Copied",
+          description: "Link copied. Go spam someone.",
+        });
+      } catch (err) {
+        toast({
+          title: "Error",
+          description: "Clipboard failed. Skill issue.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
 
   return (
     <motion.div 
@@ -53,41 +93,72 @@ export function ChatBubble({ role, content, isStreaming }: ChatBubbleProps) {
         </span>
 
         <div className={cn(
-          "px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed overflow-hidden",
+          "px-4 py-3 rounded-2xl shadow-sm text-sm leading-relaxed overflow-hidden group/bubble relative",
           isUser 
             ? "bg-primary text-primary-foreground rounded-tr-sm" 
             : "bg-secondary text-secondary-foreground rounded-tl-sm border border-white/5"
         )}>
           {isImage ? (
-             // Custom handling for images if mixed with text would be complex, 
-             // but here we rely on markdown mostly or direct image
              <div className="prose prose-invert max-w-none text-inherit break-words">
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
                   components={{
                     img: ({src, alt}) => (
-                      <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
-                        <DialogTrigger asChild>
-                          <div className="relative group cursor-zoom-in mt-2 rounded-lg overflow-hidden border border-white/10">
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                      <div className="relative group/image">
+                        <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
+                          <DialogTrigger asChild>
+                            <div className="relative cursor-zoom-in mt-2 rounded-lg overflow-hidden border border-white/10">
+                              <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-colors" />
+                              <img 
+                                src={src} 
+                                alt={alt} 
+                                className="max-w-full h-auto rounded-lg"
+                              />
+                            </div>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl p-0 bg-transparent border-none shadow-none">
                             <img 
                               src={src} 
                               alt={alt} 
-                              className="max-w-full h-auto rounded-lg"
+                              className="w-full h-auto rounded-lg shadow-2xl"
                             />
-                            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                              Click to expand
-                            </div>
-                          </div>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl p-0 bg-transparent border-none shadow-none">
-                          <img 
-                            src={src} 
-                            alt={alt} 
-                            className="w-full h-auto rounded-lg shadow-2xl"
-                          />
-                        </DialogContent>
-                      </Dialog>
+                          </DialogContent>
+                        </Dialog>
+                        
+                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
+                          <Button 
+                            size="icon" 
+                            variant="secondary" 
+                            className="h-8 w-8 rounded-full bg-black/50 backdrop-blur-sm border-white/10 hover:bg-black/70"
+                            onClick={() => src && handleDownload(src)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                size="icon" 
+                                variant="secondary" 
+                                className="h-8 w-8 rounded-full bg-black/50 backdrop-blur-sm border-white/10 hover:bg-black/70"
+                              >
+                                <Share2 className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10">
+                              <DropdownMenuItem onClick={() => handleShare('twitter', src || null)} className="gap-2 cursor-pointer">
+                                <Twitter className="h-4 w-4" /> Twitter
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleShare('facebook', src || null)} className="gap-2 cursor-pointer">
+                                <Facebook className="h-4 w-4" /> Facebook
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleShare('copy', src || null)} className="gap-2 cursor-pointer">
+                                <LinkIcon className="h-4 w-4" /> Copy Link
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
                     )
                   }}
                 >
